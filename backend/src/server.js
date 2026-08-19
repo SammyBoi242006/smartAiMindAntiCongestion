@@ -5,6 +5,7 @@ const cors = require("cors");
 const express = require("express");
 const { Server } = require("socket.io");
 const { startSimulator } = require("./services/simulator");
+const apiRoutes = require("./routes/apiRoutes");
 
 const app = express();
 const server = http.createServer(app);
@@ -13,6 +14,7 @@ const port = Number(process.env.PORT) || 4000;
 
 app.use(cors());
 app.use(express.json());
+app.use("/api", apiRoutes);
 
 app.get("/api/health", (_request, response) => {
   response.status(200).json({
