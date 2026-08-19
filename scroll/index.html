@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#171513">
+  <title>Night Run | Scroll Sequence</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --ink: #f5f0e8;
+      --muted: #b7b0a6;
+      --line: rgba(245, 240, 232, 0.23);
+      --accent: #f0a35b;
+      --stage: #171513;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body { margin: 0; min-height: 100%; }
+
+    body {
+      min-height: 100dvh;
+      overflow: hidden;
+      background: var(--stage);
+      color: var(--ink);
+      font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+    }
+
+    .stage {
+      position: relative;
+      min-height: 100dvh;
+      overflow: hidden;
+      isolation: isolate;
+      background: #171513;
+      cursor: ns-resize;
+    }
+
+    .stage::after {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+      content: "";
+      background: linear-gradient(180deg, rgba(7, 6, 5, 0.5), transparent 28%, transparent 64%, rgba(7, 6, 5, 0.88));
+    }
+
+    .frame {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center;
+      opacity: 0;
+      transition: opacity 500ms ease;
+    }
+
+    .frame.is-ready { opacity: 1; }
+
+    .header,
+    .caption,
+    .controls {
+      position: absolute;
+      z-index: 2;
+    }
+
+    .header {
+      top: clamp(24px, 5vw, 58px);
+      left: clamp(22px, 6vw, 92px);
+      right: clamp(22px, 6vw, 92px);
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 24px;
+    }
+
+    .eyebrow,
+    .frame-count,
+    .hint,
+    .progress-label {
+      margin: 0;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      line-height: 1.4;
+      text-transform: uppercase;
+    }
+
+    .eyebrow { color: var(--accent); }
+    .frame-count { color: var(--muted); text-align: right; }
+
+    .caption {
+      left: clamp(22px, 6vw, 92px);
+      bottom: clamp(128px, 15vh, 180px);
+      max-width: 470px;
+    }
+
+    h1 {
+      max-width: 8ch;
+      margin: 12px 0 14px;
+      font-size: clamp(48px, 8vw, 124px);
+      font-weight: 700;
+      letter-spacing: -0.07em;
+      line-height: 0.84;
+    }
+
+    .caption p {
+      max-width: 33ch;
+      margin: 0;
+      color: rgba(245, 240, 232, 0.72);
+      font-size: 14px;
+      line-height: 1.55;
+    }
+
+    .controls {
+      right: clamp(22px, 6vw, 92px);
+      bottom: clamp(30px, 6vw, 72px);
+      left: clamp(22px, 6vw, 92px);
+      display: grid;
+      grid-template-columns: auto minmax(120px, 1fr) auto;
+      align-items: center;
+      gap: 18px;
+    }
+
+    .progress-label { color: var(--muted); }
+
+    .progress {
+      position: relative;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      cursor: ew-resize;
+      touch-action: none;
+    }
+
+    .progress::before {
+      width: 100%;
+      height: 1px;
+      background: var(--line);
+      content: "";
+    }
+
+    .progress-fill {
+      position: absolute;
+      left: 0;
+      width: 0;
+      height: 2px;
+      background: var(--accent);
+      transform-origin: left center;
+    }
+
+    .progress-knob {
+      position: absolute;
+      left: 0;
+      width: 9px;
+      height: 9px;
+      border: 2px solid var(--stage);
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 0 1px var(--accent);
+      transform: translateX(-50%);
+    }
+
+    .hint {
+      color: var(--muted);
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    .loading {
+      position: absolute;
+      inset: 0;
+      z-index: 3;
+      display: grid;
+      place-items: center;
+      background: var(--stage);
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      transition: opacity 450ms ease, visibility 450ms ease;
+    }
+
+    .loading.is-hidden { opacity: 0; visibility: hidden; }
+
+    @media (max-width: 640px) {
+      .stage::after { background: linear-gradient(180deg, rgba(7, 6, 5, 0.58), transparent 23%, transparent 51%, rgba(7, 6, 5, 0.92)); }
+      .frame { object-position: 58% center; }
+      .caption { bottom: 150px; }
+      .controls { grid-template-columns: auto 1fr; gap: 10px 14px; }
+      .progress { grid-column: 1 / -1; grid-row: 2; }
+      .hint { justify-self: end; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .frame, .loading { transition-duration: 0ms; }
+    }
+  </style>
+</head>
+<body>
+  <main class="stage" aria-label="Interactive truck image sequence. Scroll up or down to move through the frames.">
+    <div class="loading" id="loading">Loading sequence</div>
+    <img class="frame" id="frame" alt="A semi truck driving through a warm evening landscape">
+
+    <header class="header">
+      <p class="eyebrow">Scroll sequence / 001</p>
+      <p class="frame-count" id="frame-count">Frame 01 / 53</p>
+    </header>
+
+    <section class="caption" aria-label="Sequence introduction">
+      <p class="eyebrow">The long haul</p>
+      <h1>Keep<br>moving.</h1>
+      <p>Scroll through the journey. Every wheel movement advances or reverses the road, one frame at a time.</p>
+    </section>
+
+    <footer class="controls">
+      <p class="progress-label">01</p>
+      <div class="progress" id="progress" role="slider" aria-label="Image sequence position" aria-valuemin="1" aria-valuemax="53" aria-valuenow="1" tabindex="0">
+        <span class="progress-fill" id="progress-fill"></span>
+        <span class="progress-knob" id="progress-knob"></span>
+      </div>
+      <p class="hint">Scroll to scrub</p>
+    </footer>
+  </main>
+
+  <script>
+    const frameTotal = 53;
+    const image = document.getElementById("frame");
+    const loading = document.getElementById("loading");
+    const frameCount = document.getElementById("frame-count");
+    const progress = document.getElementById("progress");
+    const progressFill = document.getElementById("progress-fill");
+    const progressKnob = document.getElementById("progress-knob");
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const frames = [];
+    let currentFrame = 0;
+    let renderedFrame = -1;
+    let targetFrame = 0;
+    let loadedFrames = 0;
+    let wheelStopTimer;
+    let touchStartY = null;
+
+    const framePath = (frameNumber) => `./${String(frameNumber + 1).padStart(3, "0")}_hero_frame.png`;
+
+    function updateInterface(frameNumber) {
+      const displayFrame = Math.round(frameNumber);
+      const progressValue = frameNumber / (frameTotal - 1);
+      frameCount.textContent = `Frame ${String(displayFrame + 1).padStart(2, "0")} / ${frameTotal}`;
+      progressFill.style.width = `${progressValue * 100}%`;
+      progressKnob.style.left = `${progressValue * 100}%`;
+      progress.setAttribute("aria-valuenow", displayFrame + 1);
+    }
+
+    function renderFrame(frameNumber) {
+      const nextFrame = Math.max(0, Math.min(frameTotal - 1, Math.round(frameNumber)));
+      if (nextFrame !== renderedFrame) {
+        renderedFrame = nextFrame;
+        image.src = frames[renderedFrame].src;
+      }
+      updateInterface(frameNumber);
+    }
+
+    let previousTime = performance.now();
+    function animate() {
+      const now = performance.now();
+      const elapsed = Math.min(64, now - previousTime);
+      previousTime = now;
+      const distance = targetFrame - currentFrame;
+      const smoothing = reduceMotion ? 1 : 1 - Math.exp(-elapsed / 150);
+      currentFrame += distance * smoothing;
+      if (Math.abs(targetFrame - currentFrame) < 0.01) currentFrame = targetFrame;
+      renderFrame(currentFrame);
+      requestAnimationFrame(animate);
+    }
+
+    function scrubBy(delta) {
+      targetFrame = Math.max(0, Math.min(frameTotal - 1, targetFrame + delta));
+      clearTimeout(wheelStopTimer);
+      wheelStopTimer = setTimeout(() => { targetFrame = Math.max(0, Math.min(frameTotal - 1, targetFrame)); }, 120);
+    }
+
+    function setFrameFromPointer(event) {
+      const bounds = progress.getBoundingClientRect();
+      const ratio = Math.max(0, Math.min(1, (event.clientX - bounds.left) / bounds.width));
+      targetFrame = ratio * (frameTotal - 1);
+    }
+
+    frames.push(...Array.from({ length: frameTotal }, (_, index) => {
+      const nextImage = new Image();
+      nextImage.src = framePath(index);
+      nextImage.onload = () => {
+        loadedFrames += 1;
+        if (loadedFrames === frameTotal) {
+          loading.classList.add("is-hidden");
+          image.classList.add("is-ready");
+        }
+      };
+      return nextImage;
+    }));
+
+    window.addEventListener("wheel", (event) => {
+      event.preventDefault();
+      const delta = event.deltaMode === 1 ? event.deltaY * 16 : event.deltaY;
+      scrubBy(delta * 0.028);
+    }, { passive: false });
+
+    progress.addEventListener("pointerdown", (event) => {
+      progress.setPointerCapture(event.pointerId);
+      setFrameFromPointer(event);
+    });
+    progress.addEventListener("pointermove", (event) => {
+      if (event.buttons) setFrameFromPointer(event);
+    });
+    progress.addEventListener("keydown", (event) => {
+      if (event.key === "ArrowRight" || event.key === "ArrowUp") scrubBy(1);
+      if (event.key === "ArrowLeft" || event.key === "ArrowDown") scrubBy(-1);
+      if (event.key === "Home") targetFrame = 0;
+      if (event.key === "End") targetFrame = frameTotal - 1;
+    });
+
+    window.addEventListener("touchstart", (event) => { touchStartY = event.touches[0].clientY; }, { passive: true });
+    window.addEventListener("touchmove", (event) => {
+      if (touchStartY === null) return;
+      const nextY = event.touches[0].clientY;
+      scrubBy((touchStartY - nextY) * 0.08);
+      touchStartY = nextY;
+    }, { passive: true });
+    window.addEventListener("touchend", () => { touchStartY = null; }, { passive: true });
+
+    updateInterface(0);
+    image.src = framePath(0);
+    animate();
+  </script>
+</body>
+</html>
