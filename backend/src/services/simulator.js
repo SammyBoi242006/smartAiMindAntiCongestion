@@ -1,4 +1,5 @@
 const { getSegments, updateSegment } = require("../store/dataStore");
+const { computeACI } = require("./scoring");
 
 const TICK_MS = 3000;
 let tickNumber = 0;
@@ -28,10 +29,11 @@ function simulateTick() {
       Math.max(5, segment.baseSpeedKph * 0.14),
       segment.baseSpeedKph * 1.05,
     );
-    return updateSegment(segment.id, {
+    const nextReading = {
       speedKph: Number(speedKph.toFixed(1)),
       occupancyRatio: Number(occupancyRatio.toFixed(2)),
-    });
+    };
+    return updateSegment(segment.id, { ...nextReading, aci: computeACI({ ...segment, ...nextReading }) });
   });
 
   console.log(`Simulator tick ${tickNumber}: ${liveSegments.length} segments updated`);

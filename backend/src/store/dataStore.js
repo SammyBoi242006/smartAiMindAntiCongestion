@@ -9,6 +9,8 @@ for (const segment of segments) {
     ...segment,
     speedKph: segment.baseSpeedKph,
     occupancyRatio: 0.32,
+    incidentImpact: 0,
+    aci: 11,
     updatedAt: new Date().toISOString(),
   };
   segmentState.set(segment.id, initialState);
@@ -26,6 +28,7 @@ function updateSegment(segmentId, patch) {
     timestamp: next.updatedAt,
     speedKph: next.speedKph,
     occupancyRatio: next.occupancyRatio,
+    aci: next.aci,
   });
   if (history.length > HISTORY_LIMIT) history.splice(0, history.length - HISTORY_LIMIT);
   return next;
