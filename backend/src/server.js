@@ -4,6 +4,7 @@ const http = require("http");
 const cors = require("cors");
 const express = require("express");
 const { Server } = require("socket.io");
+const { startSimulator } = require("./services/simulator");
 
 const app = express();
 const server = http.createServer(app);
@@ -26,6 +27,7 @@ io.on("connection", (socket) => {
 
 server.listen(port, () => {
   console.log(`Transit intelligence API listening on http://localhost:${port}`);
+  startSimulator();
 });
 
 module.exports = { app, server, io };
