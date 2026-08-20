@@ -5,7 +5,7 @@
   "description": "Live congestion intelligence demo backend",
   "main": "src/server.js",
   "engines": {
-    "node": ">=22"
+    "node": ">=22 <25"
   },
   "scripts": {
     "start": "node src/server.js",
