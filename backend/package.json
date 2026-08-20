@@ -4,6 +4,9 @@
   "private": true,
   "description": "Live congestion intelligence demo backend",
   "main": "src/server.js",
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js"

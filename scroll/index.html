@@ -114,6 +114,34 @@
       line-height: 1.55;
     }
 
+    .dashboard-cta {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 44px;
+      margin-top: 24px;
+      padding: 0 18px;
+      border: 1px solid rgba(245, 240, 232, 0.52);
+      border-radius: 6px;
+      background: rgba(240, 163, 91, 0.18);
+      color: var(--ink);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      line-height: 1;
+      text-decoration: none;
+      text-transform: uppercase;
+      transition: background 180ms ease, border-color 180ms ease, transform 180ms ease;
+    }
+
+    .dashboard-cta:hover,
+    .dashboard-cta:focus-visible {
+      border-color: var(--accent);
+      background: rgba(240, 163, 91, 0.32);
+      outline: none;
+      transform: translateY(-1px);
+    }
+
     .controls {
       right: clamp(22px, 6vw, 92px);
       bottom: clamp(30px, 6vw, 72px);
@@ -190,6 +218,7 @@
       .stage::after { background: linear-gradient(180deg, rgba(7, 6, 5, 0.58), transparent 23%, transparent 51%, rgba(7, 6, 5, 0.92)); }
       .frame { object-position: 58% center; }
       .caption { bottom: 150px; }
+      .dashboard-cta { min-height: 42px; padding: 0 15px; }
       .controls { grid-template-columns: auto 1fr; gap: 10px 14px; }
       .progress { grid-column: 1 / -1; grid-row: 2; }
       .hint { justify-self: end; }
@@ -214,6 +243,7 @@
       <p class="eyebrow">The long haul</p>
       <h1>Keep<br>moving.</h1>
       <p>Scroll through the journey. Every wheel movement advances or reverses the road, one frame at a time.</p>
+      <a class="dashboard-cta" id="dashboard-cta" href="https://your-render-service.onrender.com/dashboard">Visit dashboard</a>
     </section>
 
     <footer class="controls">
@@ -234,6 +264,7 @@
     const progress = document.getElementById("progress");
     const progressFill = document.getElementById("progress-fill");
     const progressKnob = document.getElementById("progress-knob");
+    const dashboardCta = document.getElementById("dashboard-cta");
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const frames = [];
     let currentFrame = 0;
@@ -244,6 +275,18 @@
     let touchStartY = null;
 
     const framePath = (frameNumber) => `./${String(frameNumber + 1).padStart(3, "0")}_hero_frame.png`;
+
+    function getDashboardUrl() {
+      const params = new URLSearchParams(window.location.search);
+      const overrideUrl = params.get("dashboardUrl");
+      if (overrideUrl) return overrideUrl;
+      if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
+        return "http://localhost:4000/dashboard";
+      }
+      return dashboardCta.href;
+    }
+
+    dashboardCta.href = getDashboardUrl();
 
     function updateInterface(frameNumber) {
       const displayFrame = Math.round(frameNumber);

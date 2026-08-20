@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#101417">
+  <title>Transit Intelligence Dashboard</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #101417;
+      --panel: #171d21;
+      --panel-strong: #20282d;
+      --ink: #f4efe7;
+      --muted: #aeb8b8;
+      --line: rgba(244, 239, 231, 0.16);
+      --accent: #f0a35b;
+      --good: #65d48c;
+      --warn: #f4c95d;
+      --bad: #ff766f;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100dvh;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: "Segoe UI", Arial, sans-serif;
+    }
+
+    .shell {
+      width: min(1180px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 32px 0;
+    }
+
+    header {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 24px;
+      padding-bottom: 22px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(30px, 5vw, 58px);
+      line-height: 0.95;
+      letter-spacing: 0;
+    }
+
+    .eyebrow,
+    .status,
+    th {
+      margin: 0 0 8px;
+      color: var(--accent);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+
+    .status {
+      margin: 0;
+      color: var(--muted);
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin: 22px 0;
+    }
+
+    .metric,
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+    }
+
+    .metric {
+      padding: 16px;
+    }
+
+    .metric span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .metric strong {
+      display: block;
+      margin-top: 8px;
+      font-size: 28px;
+      line-height: 1;
+    }
+
+    .panel {
+      overflow: hidden;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th,
+    td {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+    }
+
+    th {
+      background: var(--panel-strong);
+      color: var(--muted);
+      font-size: 10px;
+    }
+
+    td {
+      color: rgba(244, 239, 231, 0.9);
+      font-size: 14px;
+    }
+
+    tr:last-child td { border-bottom: 0; }
+
+    .pill {
+      display: inline-flex;
+      min-width: 72px;
+      justify-content: center;
+      padding: 6px 8px;
+      border-radius: 999px;
+      background: rgba(101, 212, 140, 0.14);
+      color: var(--good);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .pill.warn {
+      background: rgba(244, 201, 93, 0.14);
+      color: var(--warn);
+    }
+
+    .pill.bad {
+      background: rgba(255, 118, 111, 0.14);
+      color: var(--bad);
+    }
+
+    @media (max-width: 760px) {
+      .shell { width: min(100% - 24px, 1180px); padding: 22px 0; }
+      header { align-items: flex-start; flex-direction: column; }
+      .status { text-align: left; }
+      .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .panel { overflow-x: auto; }
+      table { min-width: 720px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header>
+      <div>
+        <p class="eyebrow">Live backend</p>
+        <h1>Transit Intelligence</h1>
+      </div>
+      <p class="status" id="status">Connecting</p>
+    </header>
+
+    <section class="metrics" aria-label="Current network metrics">
+      <article class="metric">
+        <span>Segments</span>
+        <strong id="segment-count">--</strong>
+      </article>
+      <article class="metric">
+        <span>Average Speed</span>
+        <strong id="average-speed">--</strong>
+      </article>
+      <article class="metric">
+        <span>Average ACI</span>
+        <strong id="average-aci">--</strong>
+      </article>
+      <article class="metric">
+        <span>Pressure</span>
+        <strong id="pressure">--</strong>
+      </article>
+    </section>
+
+    <section class="panel" aria-label="Live segment table">
+      <table>
+        <thead>
+          <tr>
+            <th>Segment</th>
+            <th>Mode</th>
+            <th>Speed</th>
+            <th>Occupancy</th>
+            <th>ACI</th>
+            <th>Updated</th>
+          </tr>
+        </thead>
+        <tbody id="segments">
+          <tr><td colspan="6">Loading live data</td></tr>
+        </tbody>
+      </table>
+    </section>
+  </main>
+
+  <script>
+    const statusEl = document.getElementById("status");
+    const segmentCountEl = document.getElementById("segment-count");
+    const averageSpeedEl = document.getElementById("average-speed");
+    const averageAciEl = document.getElementById("average-aci");
+    const pressureEl = document.getElementById("pressure");
+    const segmentsEl = document.getElementById("segments");
+
+    function getPressureLabel(aci) {
+      if (aci >= 70) return "High";
+      if (aci >= 40) return "Medium";
+      return "Low";
+    }
+
+    function getPillClass(aci) {
+      if (aci >= 70) return "pill bad";
+      if (aci >= 40) return "pill warn";
+      return "pill";
+    }
+
+    function formatTime(value) {
+      return new Intl.DateTimeFormat(undefined, {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+      }).format(new Date(value));
+    }
+
+    async function loadSegments() {
+      try {
+        const response = await fetch("/api/segments");
+        if (!response.ok) throw new Error(`API returned ${response.status}`);
+        const segments = await response.json();
+        const totalSpeed = segments.reduce((sum, segment) => sum + segment.speedKph, 0);
+        const totalAci = segments.reduce((sum, segment) => sum + segment.aci, 0);
+        const averageSpeed = totalSpeed / segments.length;
+        const averageAci = totalAci / segments.length;
+
+        segmentCountEl.textContent = String(segments.length);
+        averageSpeedEl.textContent = `${averageSpeed.toFixed(1)} kph`;
+        averageAciEl.textContent = averageAci.toFixed(0);
+        pressureEl.textContent = getPressureLabel(averageAci);
+        statusEl.textContent = `Updated ${formatTime(new Date().toISOString())}`;
+
+        segmentsEl.innerHTML = segments.map((segment) => `
+          <tr>
+            <td>${segment.id}: ${segment.fromId} to ${segment.toId}</td>
+            <td>${segment.mode}</td>
+            <td>${segment.speedKph.toFixed(1)} kph</td>
+            <td>${Math.round(segment.occupancyRatio * 100)}%</td>
+            <td><span class="${getPillClass(segment.aci)}">${segment.aci}</span></td>
+            <td>${formatTime(segment.updatedAt)}</td>
+          </tr>
+        `).join("");
+      } catch (error) {
+        statusEl.textContent = "Backend unavailable";
+        segmentsEl.innerHTML = `<tr><td colspan="6">${error.message}</td></tr>`;
+      }
+    }
+
+    loadSegments();
+    setInterval(loadSegments, 3000);
+  </script>
+</body>
+</html>

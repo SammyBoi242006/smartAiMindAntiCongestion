@@ -1,6 +1,7 @@
 require("dotenv").config();
 
 const http = require("http");
+const path = require("path");
 const cors = require("cors");
 const express = require("express");
 const { Server } = require("socket.io");
@@ -15,6 +16,12 @@ const port = Number(process.env.PORT) || 4000;
 app.use(cors());
 app.use(express.json());
 app.use("/api", apiRoutes);
+
+app.get("/", (_request, response) => response.redirect("/dashboard"));
+
+app.get("/dashboard", (_request, response) => {
+  response.sendFile(path.join(__dirname, "dashboard.html"));
+});
 
 app.get("/api/health", (_request, response) => {
   response.status(200).json({
