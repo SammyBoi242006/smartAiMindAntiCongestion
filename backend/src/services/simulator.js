@@ -4,6 +4,7 @@ const { computeACI } = require("./scoring");
 const TICK_MS = 3000;
 let tickNumber = 0;
 let timer;
+const logTicks = process.env.LOG_SIMULATOR_TICKS === "true";
 
 function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
@@ -36,7 +37,9 @@ function simulateTick() {
     return updateSegment(segment.id, { ...nextReading, aci: computeACI({ ...segment, ...nextReading }) });
   });
 
-  console.log(`Simulator tick ${tickNumber}: ${liveSegments.length} segments updated`);
+  if (logTicks) {
+    console.log(`Simulator tick ${tickNumber}: ${liveSegments.length} segments updated`);
+  }
   return liveSegments;
 }
 
